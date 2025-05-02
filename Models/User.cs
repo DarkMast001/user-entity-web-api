@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace UserEntityWebAPI.Components
+namespace UserEntityWebAPI.Models
 {
     public class User
     {
@@ -21,7 +21,7 @@ namespace UserEntityWebAPI.Components
         public DateTime? RevokedOn { get; private set; }
         public string RevokedBy { get; private set; }
 
-        private User(string login, string password, string name, int gender, DateTime? birthday, bool isAdmin, string createdBy)
+        public User(string login, string password, string name, int gender, DateTime? birthday, bool isAdmin, string createdBy)
         {
             Id = Guid.NewGuid();
             Login = login;
@@ -80,7 +80,7 @@ namespace UserEntityWebAPI.Components
 
         public void Revoke(string revokedBy)
         {
-            RevokedOn = DateTime.UtcNow;
+            RevokedOn = DateTime.Now;
             RevokedBy = revokedBy;
         }
 
@@ -90,22 +90,6 @@ namespace UserEntityWebAPI.Components
             RevokedBy = "";
         }
 
-        private static bool IsLatinLettersAndDigitsOnly(string? input)
-        {
-            if (string.IsNullOrEmpty(input))
-                return false;
-
-            Regex regex = new Regex(@"^[a-zA-Z0-9]+$");
-            return regex.IsMatch(input);
-        }
-
-        private static bool IsLatinAndCyrillicLettersOnly(string? input)
-        {
-            if (string.IsNullOrEmpty(input))
-                return false;
-
-            Regex regex = new Regex(@"^[a-zA-Zа-яА-Я]+$");
-            return regex.IsMatch(input);
-        }
+        public bool IsActive => (RevokedOn == null);
     }
 }
