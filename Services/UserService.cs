@@ -168,6 +168,37 @@ namespace UserEntityWebAPI.Services
             user.Restore();
         }
 
+        public bool TryLogin(string login, string password, out User? user)
+        {
+            if (_users.TryGetValue(login, out user) && user.Password == password && user.IsActive)
+            {
+                return true;
+            }
+
+            user = null;
+            return false;
+        }
+
+        public bool CanUserModifyUser(string currentLogin, string targetLogin)
+        {
+            if (!_users.TryGetValue(currentLogin, out User? currentUser))
+                return false;
+
+            if (!_users.TryGetValue(targetLogin, out User? targetUser))
+                return false;
+
+            if (currentUser.IsAdmin)
+                return true;
+
+            return currentLogin == targetLogin && targetUser.IsActive;
+        }
+
+        // DEBUG
+        public IEnumerable<User> GetAllUsers()
+        {
+            return _users.Values;
+        }
+
         private bool IsLatinLettersAndDigitsOnly(string? input)
         {
             if (string.IsNullOrEmpty(input))
