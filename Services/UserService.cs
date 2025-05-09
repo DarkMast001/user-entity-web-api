@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using Microsoft.AspNetCore.Http.HttpResults;
+using System.Globalization;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using UserEntityWebAPI.Models;
@@ -18,6 +19,19 @@ namespace UserEntityWebAPI.Services
             _users[admin.Login] = admin;
         }
 
+        /// <summary>
+        /// Создание пользователя по логину, паролю, имени, полу и дате рождения. Доступно только админам.
+        /// </summary>
+        /// <param name="login">Логин пользователя</param>
+        /// <param name="password">Пароль пользовтаеля</param>
+        /// <param name="name">Имя пользователя</param>
+        /// <param name="gender">Пол пользователя</param>
+        /// <param name="birthday">Дата рождения пользователя</param>
+        /// <param name="isAdmin">Будет ли пользователь администратором</param>
+        /// <param name="createdBy">Логин пользователя, который создал нового пользователь</param>
+        /// <returns>Новый пользователь <see cref="User"/></returns>
+        /// <exception cref="InvalidDataException">В случае ввода некорректных данных</exception>
+        /// <exception cref="KeyNotFoundException">В случае отсутствия пользователя</exception>
         public User CreateUser(string login, string password, string name, int gender, DateTime? birthday, bool isAdmin, string createdBy)
         {
             if (!IsLatinLettersAndDigitsOnly(login))
@@ -30,89 +44,141 @@ namespace UserEntityWebAPI.Services
                 throw new InvalidDataException("Недопустимое имя");
 
             if (_users.ContainsKey(login))
-                throw new InvalidOperationException("Логин уже занят");
+                throw new InvalidDataException("Логин уже занят");
 
             if (gender < 0 || gender > 2)
                 throw new InvalidDataException("Недопустимое значение поля \"Пол\"");
+
+            if (!_users.ContainsKey(createdBy))
+                throw new KeyNotFoundException($"Пользователя с логином {createdBy} не существует");
 
             User user = new User(login, password, name, gender, birthday, isAdmin, createdBy);
             _users[login] = user;
             return user;
         }
 
+        /// <summary>
+        /// Изменение пароля пользователя. Может менять только админ, либо сам пользователь
+        /// </summary>
+        /// <param name="login">Логин пользователя, чей пароль надо поменять</param>
+        /// <param name="newPassword">Новый пароль пользователя</param>
+        /// <param name="modifitedBy">Кем текущий пользователь будет изменён</param>
+        /// <exception cref="InvalidDataException">В случае ввода недопустимого пароля</exception>
+        /// <exception cref="KeyNotFoundException">В случае отсутствия пользователя</exception>
         public void UpdatePassword(string login, string newPassword, string modifitedBy)
         {
-            // TODO: Проверка на админа или самого пользователя
-
             if (!IsLatinLettersAndDigitsOnly(newPassword))
                 throw new InvalidDataException("Недопустимый пароль");
 
             if (!_users.TryGetValue(login, out var user))
                 throw new KeyNotFoundException($"Пользователя с логином \"{login}\" нет");
 
+            if (!_users.ContainsKey(modifitedBy))
+                throw new KeyNotFoundException($"Пользователя с логином {modifitedBy} не существует");
+
             user.UpdatePassword(newPassword, modifitedBy);
         }
 
+        /// <summary>
+        /// Изменение логина пользователя. Может менять только админ, либо сам пользователь
+        /// </summary>
+        /// <param name="login">Логин пользователя, чей логин надо поменять</param>
+        /// <param name="newLogin">Новый логин пользователя</param>
+        /// <param name="modifitedBy">Кем текущий пользователь будет изменён</param>
+        /// <exception cref="InvalidDataException">В случае ввода недопустимого пароля</exception>
+        /// <exception cref="KeyNotFoundException">В случае отсутствия пользователя</exception>
         public void UpdateLogin(string login, string newLogin, string modifitedBy)
         {
-            // TODO: Проверка на админа или самого пользователя
-
             if (!IsLatinLettersAndDigitsOnly(newLogin))
                 throw new InvalidDataException("Недопустимый логин");
 
             if (!_users.TryGetValue(login, out var user))
                 throw new KeyNotFoundException($"Пользователя с логином \"{login}\" нет");
 
+            if (!_users.ContainsKey(modifitedBy))
+                throw new KeyNotFoundException($"Пользователя с логином {modifitedBy} не существует");
+
             user.UpdateLogin(newLogin, modifitedBy);
         }
 
+        /// <summary>
+        /// Изменение имени пользователя. Может менять только админ, либо сам пользователь
+        /// </summary>
+        /// <param name="login">Логин пользователя, чьё имя надо поменять</param>
+        /// <param name="newName">Новое имя пользователя</param>
+        /// <param name="modifitedBy">Кем текущий пользователь будет изменён</param>
+        /// <exception cref="InvalidDataException">В случае ввода недопустимого имени</exception>
+        /// <exception cref="KeyNotFoundException">В случае отсутствия пользователя</exception>
         public void UpdateName(string login, string newName, string modifitedBy)
         {
-            // TODO: Проверка на админа или самого пользователя
-
             if (!IsLatinAndCyrillicLettersOnly(newName))
                 throw new InvalidDataException("Недопустимое имя");
 
             if (!_users.TryGetValue(login, out var user))
                 throw new KeyNotFoundException($"Пользователя с логином \"{login}\" нет");
 
+            if (!_users.ContainsKey(modifitedBy))
+                throw new KeyNotFoundException($"Пользователя с логином {modifitedBy} не существует");
+
             user.UpdateName(newName, modifitedBy);
         }
 
+        /// <summary>
+        /// Изменение пола пользователя. Может менять только админ, либо сам пользователь
+        /// </summary>
+        /// <param name="login">Логин пользователя, чей пол надо поменять</param>
+        /// <param name="newGender">Новый пол пользователя</param>
+        /// <param name="modifitedBy">Кем текущий пользователь будет изменён</param>
+        /// <exception cref="InvalidDataException">В случае ввода недопустимого имени</exception>
+        /// <exception cref="KeyNotFoundException">В случае отсутствия пользователя</exception>
         public void UpdateGender(string login, int newGender, string modifitedBy)
         {
-            // TODO: Проверка на админа или самого пользователя
-
             if (newGender < 0 || newGender > 2)
                 throw new InvalidDataException("Недопустимое значение поля \"Пол\"");
 
             if (!_users.TryGetValue(login, out var user))
                 throw new KeyNotFoundException($"Пользователя с логином \"{login}\" нет");
 
+            if (!_users.ContainsKey(modifitedBy))
+                throw new KeyNotFoundException($"Пользователя с логином {modifitedBy} не существует");
+
             user.UpdateGender(newGender, modifitedBy);
         }
 
+        /// <summary>
+        /// Изменение даты рождения пользователя. Может менять только админ, либо сам пользователь
+        /// </summary>
+        /// <param name="login">Логин пользователя, чью дату рождения надо поменять</param>
+        /// <param name="newBirthday">Новая дата рождения пользователя</param>
+        /// <param name="modifitedBy">Кем текущий пользователь будет изменён</param>
+        /// <exception cref="KeyNotFoundException">В случае отсутствия пользователя</exception>
         public void UpdateBirthday(string login, DateTime newBirthday, string modifitedBy)
         {
-            // TODO: Проверка на админа или самого пользователя
-
             if (!_users.TryGetValue(login, out var user))
                 throw new KeyNotFoundException($"Пользователя с логином \"{login}\" нет");
+
+            if (!_users.ContainsKey(modifitedBy))
+                throw new KeyNotFoundException($"Пользователя с логином {modifitedBy} не существует");
 
             user.UpdateBirthday(newBirthday, modifitedBy);
         }
 
+        /// <summary>
+        /// Получить всех активных пользователей. Доступно только админам
+        /// </summary>
+        /// <returns>Список <see cref="User"/>, отсортированный по дате создания.</returns>
         public IEnumerable<User> GetAllActiveUsers()
         {
-            // TODO: Проверка на админа
-
             return _users.Values.Where(user => user.IsActive).OrderBy(user => user.CreatedOn);
         }
 
+        /// <summary>
+        /// Запрос пользователя по логину. Доступно только админам
+        /// </summary>
+        /// <param name="login">Логин пользователя, которого надо получить</param>
+        /// <returns><see cref="User"/>. Если пользователь не найден - вернёт null.</returns>
         public User? GetByLogin(string login)
         {
-            // TODO: Проверка на админа
-
             if (_users.TryGetValue(login, out var user))
             {
                 return user;
@@ -121,6 +187,12 @@ namespace UserEntityWebAPI.Services
             return null;
         }
 
+        /// <summary>
+        /// Запрос пользователя по логину и паролю. Доступно только самому пользователю
+        /// </summary>
+        /// <param name="login">Логин пользователя, которого надо получить</param>
+        /// <param name="password">Пароль пользователя, которого надо получить</param>
+        /// <returns><see cref="User"/>. Если пользователь не найден - вернёт null.</returns>
         public User? GetMyUser(string login, string password)
         {
             if (_users.TryGetValue(login, out var user))
@@ -132,25 +204,43 @@ namespace UserEntityWebAPI.Services
             return null;
         }
 
+        /// <summary>
+        /// Запрос всех пользователей старше определённого возраста. Доступно только админам
+        /// </summary>
+        /// <param name="age">Возраст, старше которого будет сформирован список</param>
+        /// <returns>Список <see cref="User"/> старше определённого возраста.</returns>
         public IEnumerable<User> GetAllUsersOlderThan(int age)
         {
-            // TODO: Проверка на админа
-
             DateTime threshold = DateTime.Now.AddYears(-age);
             return _users.Values.Where(user => user.Birthday.HasValue && user.Birthday.Value < threshold && user.IsActive);
         }
 
+        /// <summary>
+        /// Полное удаление пользователя по логину. Доступно только админам
+        /// </summary>
+        /// <param name="login">Логин пользователя, которого надо удалить</param>
+        /// <exception cref="KeyNotFoundException">В случае отсутствия пользователя</exception>
+        /// /// <exception cref="InvalidDataException">При попытке admin удалить самого себя</exception>
         public void HardDelete(string login)
         {
-            // TODO: Проверка на админа
+            if (login == "admin")
+                throw new InvalidDataException("admin сам себя удалить не может");
 
             if (!_users.Remove(login))
-                throw new InvalidDataException("Пользователя с таким логином не существует");
+                throw new KeyNotFoundException("Пользователя с таким логином не существует");
         }
 
+        /// <summary>
+        /// Мягкое удаление пользователя. Проставляются поля RevokedOn и RevokedBy. Доступно только админам
+        /// </summary>
+        /// <param name="login">Логин пользователя, которого надо удалить</param>
+        /// <param name="revokedBy">Кем текущий пользователь будет удалён</param>
+        /// <exception cref="InvalidDataException">При попытке admin удалить самого себя</exception>
+        /// <exception cref="KeyNotFoundException">В случае отсутствия пользователя</exception>
         public void SoftDelete(string login, string revokedBy)
         {
-            // TODO: Проверка на админа
+            if (login == "admin")
+                throw new InvalidDataException("admin сам себя удалить не может");
 
             if (!_users.TryGetValue(login, out var user))
                 throw new KeyNotFoundException($"Пользователя с логином \"{login}\" нет");
@@ -158,16 +248,26 @@ namespace UserEntityWebAPI.Services
             user.Revoke(revokedBy);
         }
 
+        /// <summary>
+        /// Восстановление пользователя. Очистка полей RevokedOn и RevokedBy. Доступно админам
+        /// </summary>
+        /// <param name="login">Логин пользователя, которого надо восстановить</param>
+        /// <exception cref="KeyNotFoundException">В случае отсутствия пользователя</exception>
         public void RestoreUser(string login)
         {
-            // TODO: Проверка на админа
-
             if (!_users.TryGetValue(login, out var user))
                 throw new KeyNotFoundException($"Пользователя с логином \"{login}\" нет");
 
             user.Restore();
         }
 
+        /// <summary>
+        /// Может ли пользователь войти в систему под логином и паролем
+        /// </summary>
+        /// <param name="login">Логин пользовтаеля</param>
+        /// <param name="password">Пароль пользователя</param>
+        /// <param name="user">Сам пользователь</param>
+        /// <returns><see cref=true"/> - пользователь может войти в систему. <see cref=false"/> - пользователь не может войти в систему</returns>
         public bool TryLogin(string login, string password, out User? user)
         {
             if (_users.TryGetValue(login, out user) && user.Password == password && user.IsActive)
@@ -179,8 +279,17 @@ namespace UserEntityWebAPI.Services
             return false;
         }
 
+        /// <summary>
+        /// Может ли пользователь изменять другого пользователя?
+        /// </summary>
+        /// <param name="currentLogin">Логин текущего пользователя, который пытается изменить</param>
+        /// <param name="targetLogin">Логин изменяемого пользователя</param>
+        /// <returns><see cref=true"/> - пользователь может изменить другого пользователя. <see cref=false"/> - не может</returns>
         public bool CanUserModifyUser(string currentLogin, string targetLogin)
         {
+            if (currentLogin == "admin")
+                return false;
+
             if (!_users.TryGetValue(currentLogin, out User? currentUser))
                 return false;
 
@@ -191,12 +300,6 @@ namespace UserEntityWebAPI.Services
                 return true;
 
             return currentLogin == targetLogin && targetUser.IsActive;
-        }
-
-        // DEBUG
-        public IEnumerable<User> GetAllUsers()
-        {
-            return _users.Values;
         }
 
         private bool IsLatinLettersAndDigitsOnly(string? input)

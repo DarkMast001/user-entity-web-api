@@ -33,7 +33,80 @@ namespace UserEntityWebAPI.Controllers
                 u.Birthday,
                 u.IsAdmin,
                 u.CreatedOn,
-                u.CreatedBy
+                u.CreatedBy,
+                u.ModifiedOn,
+                u.ModifiedBy,
+            }));
+        }
+
+        [HttpGet("bylogin")]
+        [Authorize(Roles = "admin")]
+        public IActionResult GetUserByLogin([FromBody] GetByLoginRequest request)
+        {
+            User? user = _userService.GetByLogin(request.Login);
+            if (user == null)
+                return NotFound("Такой пользователь не найден");
+            else
+                return Ok(new {
+                    user.Login,
+                    user.Name, 
+                    user.Gender, 
+                    user.Birthday, 
+                    user.IsAdmin,
+                    user.CreatedOn,
+                    user.CreatedBy,
+                    user.ModifiedOn,
+                    user.ModifiedBy,
+                    user.RevokedOn,
+                    user.RevokedBy,
+                    user.IsActive
+                });
+        }
+
+        [HttpGet("myuser")]
+        public IActionResult GetMyUser([FromQuery] string login, [FromQuery] string password)
+        {
+            string currentLogin = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "none";
+
+            if (currentLogin != login)
+                return Forbid("Вы можете получить только свои данные");
+
+            User? user = _userService.GetMyUser(login, password);
+
+            if (user == null)
+                return NotFound("Такого пользователя нет или пароль неверен");
+
+            if (!user.IsActive)
+                return BadRequest("Ваш пользователь не активен");
+
+            return Ok(new
+            {
+                user.Login,
+                user.Name,
+                user.Gender,
+                user.Birthday,
+                user.CreatedOn,
+                user.IsActive
+            });
+        }
+
+        [HttpGet("olderthan")]
+        [Authorize(Roles = "admin")]
+        public IActionResult GetAllUsersOlderThan([FromQuery] int age)
+        {
+            var users = _userService.GetAllUsersOlderThan(age);
+
+            if (users.Count() == 0)
+                return NotFound("Подходящих пользователей нет");
+
+            return Ok(users.Select(user => new
+            {
+                user.Login,
+                user.Name,
+                user.Gender,
+                user.Birthday,
+                user.CreatedOn,
+                user.IsActive
             }));
         }
 
@@ -70,7 +143,7 @@ namespace UserEntityWebAPI.Controllers
 
             if (!_userService.CanUserModifyUser(currentLogin, login))
             {
-                return Forbid("У вас нет прав изменять этого пользователя");
+                return Forbid("У вас нет прав изменять этого пользователя, либо пользовтаель не активен.");
             }
 
             try
@@ -85,22 +158,21 @@ namespace UserEntityWebAPI.Controllers
             }
         }
 
-        //[HttpGet("debug")]
-        //public IActionResult DebugUsers()
-        //{
-        //    return Ok(_userService.GetAllUsers());
-        //}
-
         // Переделать следующие методы под авторизацию
 
         [HttpPut("{login}/password")]
         public IActionResult UpdatePassword(string login, [FromBody] UpdatePasswordRequest request)
         {
-            // TODO: это должен делать и admin, и лично сам пользователь (если пользователь активен (отсутствует RevokedOn))
+            string currentLogin = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "none";
+
+            if (!_userService.CanUserModifyUser(currentLogin, login))
+            {
+                return Forbid("У вас нет прав изменять этого пользователя, либо пользовтаель не активен.");
+            }
+
             try
             {
-                // TODO: заменить admin
-                _userService.UpdatePassword(login, request.NewPassword, "admin");
+                _userService.UpdatePassword(login, request.NewPassword, currentLogin);
 
                 return Ok();
             }
@@ -113,11 +185,16 @@ namespace UserEntityWebAPI.Controllers
         [HttpPut("{login}/login")]
         public IActionResult UpdateLogin(string login, [FromBody] UpdateLoginRequest request)
         {
-            // TODO: это должен делать и admin, и лично сам пользователь (если пользователь активен (отсутствует RevokedOn))
+            string currentLogin = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "none";
+
+            if (!_userService.CanUserModifyUser(currentLogin, login))
+            {
+                return Forbid("У вас нет прав изменять этого пользователя, либо пользовтаель не активен.");
+            }
+
             try
             {
-                // TODO: заменить admin
-                _userService.UpdateLogin(login, request.NewLogin, "admin");
+                _userService.UpdateLogin(login, request.NewLogin, currentLogin);
 
                 return Ok();
             }
@@ -130,11 +207,16 @@ namespace UserEntityWebAPI.Controllers
         [HttpPut("{login}/gender")]
         public IActionResult UpdateGender(string login, [FromBody] UpdateGenderRequest request)
         {
-            // TODO: это должен делать и admin, и лично сам пользователь (если пользователь активен (отсутствует RevokedOn))
+            string currentLogin = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "none";
+
+            if (!_userService.CanUserModifyUser(currentLogin, login))
+            {
+                return Forbid("У вас нет прав изменять этого пользователя, либо пользовтаель не активен.");
+            }
+
             try
             {
-                // TODO: заменить admin
-                _userService.UpdateGender(login, request.NewGender, "admin");
+                _userService.UpdateGender(login, request.NewGender, currentLogin);
 
                 return Ok();
             }
@@ -147,11 +229,15 @@ namespace UserEntityWebAPI.Controllers
         [HttpPut("{login}/birthday")]
         public IActionResult UpdateBirthday(string login, [FromBody] UpdateBirthdayRequest request)
         {
-            // TODO: это должен делать и admin, и лично сам пользователь (если пользователь активен (отсутствует RevokedOn))
-            try
+            string currentLogin = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "none";
+
+            if (!_userService.CanUserModifyUser(currentLogin, login))
             {
-                // TODO: изменить admin
-                _userService.UpdateBirthday(login, request.NewBirthday, "admin");
+                return Forbid("У вас нет прав изменять этого пользователя, либо пользовтаель не активен.");
+            }
+
+            try {
+                _userService.UpdateBirthday(login, request.NewBirthday, currentLogin);
 
                 return Ok();
             }
@@ -161,16 +247,33 @@ namespace UserEntityWebAPI.Controllers
             }
         }
 
-        [HttpDelete("{login}")]
-        public IActionResult DeleteUser(string login)
+        [HttpDelete("soft/{login}")]
+        [Authorize(Roles = "admin")]
+        public IActionResult SoftDelete(string login)
         {
-            // TODO: это должен делать только admin
+            string currentLogin = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "none";
+
             try
             {
-                // TODO: заменить admin
-                _userService.SoftDelete(login, "admin");
+                _userService.SoftDelete(login, currentLogin);
 
                 return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpDelete("hard/{login}")]
+        [Authorize(Roles = "admin")]
+        public IActionResult HardDelete(string login)
+        {
+            try
+            {
+                _userService.HardDelete(login);
+
+                return Ok("Пользователь успешно удалён");
             }
             catch (Exception ex)
             {
@@ -179,12 +282,11 @@ namespace UserEntityWebAPI.Controllers
         }
 
         [HttpPost("{login}/restore")]
+        [Authorize(Roles = "admin")]
         public IActionResult RestoreUser(string login)
         {
-            // TODO: это должен делать только admin
             try
             {
-                // TODO: проверять что доступно только админам
                 _userService.RestoreUser(login);
 
                 return Ok();

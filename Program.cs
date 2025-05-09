@@ -3,13 +3,13 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using UserEntityWebAPI.Services;
 using System.Text;
+using UserEntityWebAPI.Configuration;
+using Microsoft.OpenApi.Models;
 
 namespace UserEntityWebAPI
 {
     public class Program
     {
-        // TODO: в admin успешно входим. Проверить, что всё работает от admin и от созданного пользователя
-
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
@@ -58,6 +58,33 @@ namespace UserEntityWebAPI
             // Swagger
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
+            builder.Services.AddSwaggerGen(action =>
+            {
+                action.SwaggerDoc("v1", new OpenApiInfo { Title = "User API", Version = "v1" });
+
+                action.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    In = ParameterLocation.Header,
+                    Description = "Введите токен в формате: Bearer {токен}. Пример: Bearer eyJhbGBYUElsdHnEikWk...",
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.ApiKey
+                });
+
+                action.AddSecurityRequirement(new OpenApiSecurityRequirement {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        Array.Empty<string>()
+                    }
+                });
+            });
 
             var app = builder.Build();
 
