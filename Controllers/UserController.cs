@@ -41,7 +41,7 @@ namespace UserEntityWebAPI.Controllers
 
         [HttpGet("bylogin")]
         [Authorize(Roles = "admin")]
-        public IActionResult GetUserByLogin([FromBody] GetByLoginRequest request)
+        public IActionResult GetUserByLogin([FromQuery] GetByLoginRequest request)
         {
             User? user = _userService.GetByLogin(request.Login);
             if (user == null)
@@ -157,8 +157,6 @@ namespace UserEntityWebAPI.Controllers
                 return BadRequest(ex.Message);
             }
         }
-
-        // Переделать следующие методы под авторизацию
 
         [HttpPut("{login}/password")]
         public IActionResult UpdatePassword(string login, [FromBody] UpdatePasswordRequest request)

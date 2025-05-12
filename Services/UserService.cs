@@ -76,7 +76,9 @@ namespace UserEntityWebAPI.Services
             if (!_users.ContainsKey(modifitedBy))
                 throw new KeyNotFoundException($"Пользователя с логином {modifitedBy} не существует");
 
+            _users.Remove(login);
             user.UpdatePassword(newPassword, modifitedBy);
+            _users.Add(login, user);
         }
 
         /// <summary>
@@ -98,7 +100,9 @@ namespace UserEntityWebAPI.Services
             if (!_users.ContainsKey(modifitedBy))
                 throw new KeyNotFoundException($"Пользователя с логином {modifitedBy} не существует");
 
+            _users.Remove(login);
             user.UpdateLogin(newLogin, modifitedBy);
+            _users.Add(newLogin, user);
         }
 
         /// <summary>
@@ -120,7 +124,9 @@ namespace UserEntityWebAPI.Services
             if (!_users.ContainsKey(modifitedBy))
                 throw new KeyNotFoundException($"Пользователя с логином {modifitedBy} не существует");
 
+            _users.Remove(login);
             user.UpdateName(newName, modifitedBy);
+            _users.Add(login, user);
         }
 
         /// <summary>
@@ -142,7 +148,9 @@ namespace UserEntityWebAPI.Services
             if (!_users.ContainsKey(modifitedBy))
                 throw new KeyNotFoundException($"Пользователя с логином {modifitedBy} не существует");
 
+            _users.Remove(login);
             user.UpdateGender(newGender, modifitedBy);
+            _users.Add(login, user);
         }
 
         /// <summary>
@@ -160,7 +168,9 @@ namespace UserEntityWebAPI.Services
             if (!_users.ContainsKey(modifitedBy))
                 throw new KeyNotFoundException($"Пользователя с логином {modifitedBy} не существует");
 
+            _users.Remove(login);
             user.UpdateBirthday(newBirthday, modifitedBy);
+            _users.Add(login, user);
         }
 
         /// <summary>
@@ -287,9 +297,6 @@ namespace UserEntityWebAPI.Services
         /// <returns><see cref=true"/> - пользователь может изменить другого пользователя. <see cref=false"/> - не может</returns>
         public bool CanUserModifyUser(string currentLogin, string targetLogin)
         {
-            if (currentLogin == "admin")
-                return false;
-
             if (!_users.TryGetValue(currentLogin, out User? currentUser))
                 return false;
 
