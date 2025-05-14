@@ -1,6 +1,6 @@
 # Как запускать проект
 
-1. Запусть `build\net9.0\publish\UserEntityWebAPI.exe`. Откроется командная строка, в которой будет что-то типа такого:
+1. Запустить `build\net9.0\publish\UserEntityWebAPI.exe`. Откроется командная строка, в которой будет что-то типа такого:
 
    > info: Microsoft.Hosting.Lifetime[14]<br>
    > Now listening on: http://localhost:5006<br>
